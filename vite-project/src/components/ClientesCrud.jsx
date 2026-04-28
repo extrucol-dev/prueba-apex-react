@@ -60,7 +60,7 @@ export default function ClientesCrud() {
             {loading ? 'Cargando...' : `${clientes.length} registros`}
           </p>
         </div>
-        <button className="btn" onClick={openCreate}>+ Nuevo Cliente</button>
+        <button type="button" className="btn" onClick={openCreate}>+ Nuevo Cliente</button>
       </div>
 
       {error && <div className="alert">{error}</div>}
@@ -100,10 +100,11 @@ export default function ClientesCrud() {
                       <span className="badge badge-amber">{c.pais}</span>
                     </td>
                     <td>
-                      <button className="btn-edit" onClick={() => openEdit(c)}>
+                      <button type="button" className="btn-edit" onClick={() => openEdit(c)}>
                         Editar
                       </button>
                       <button
+                        type="button"
                         className="btn-del"
                         onClick={() => handleDelete(c.id)}
                         disabled={deleting === c.id}

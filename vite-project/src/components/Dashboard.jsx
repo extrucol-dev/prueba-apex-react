@@ -74,7 +74,7 @@ export default function Dashboard() {
               Actualizado {updatedAt.toLocaleTimeString('es-MX')}
             </span>
           )}
-          <button className="btn" onClick={load} disabled={loading}>
+          <button type="button" className="btn" onClick={load} disabled={loading}>
             {loading ? 'Cargando...' : 'Refrescar'}
           </button>
         </div>

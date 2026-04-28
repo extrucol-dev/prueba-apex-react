@@ -20,13 +20,14 @@ export default function App() {
         </div>
         <nav className="nav">
           {NAV.map(n => (
-            <a
+            <button
               key={n.id}
+              type="button"
               className={`nav-item ${view === n.id ? 'active' : ''}`}
               onClick={() => setView(n.id)}
             >
               {n.label}
-            </a>
+            </button>
           ))}
         </nav>
         <div className="side-foot">
