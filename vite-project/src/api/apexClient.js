@@ -21,7 +21,6 @@ const getApexEnv = () => {
                || document.querySelector('#pInstance')?.value
                || ''
 
-  console.log('[apexEnv]', { appId, pageId, session, rawEnv: env })
   return { appId, pageId, session }
 }
 
@@ -51,7 +50,6 @@ const callProcess = async (processName, extras = {}) => {
 
   if (!res.ok) throw new Error(`APEX process ${processName} HTTP ${res.status}`)
   const text = await res.text()
-  console.log(`[apexClient] ${processName} raw:`, text)
   return JSON.parse(text)
 }
 

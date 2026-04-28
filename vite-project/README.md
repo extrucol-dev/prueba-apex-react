@@ -1,16 +1,32 @@
-# React + Vite
+# vite-project — Frontend React
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicacion React del proyecto APEX + React + ORDS. Ver la documentacion completa en la raiz del repositorio.
 
-Currently, two official plugins are available:
+## Comandos
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```bash
+npm install          # instalar dependencias
+npm run dev          # servidor de desarrollo en http://localhost:5173
+npm run build        # bundle de produccion en dist/
+npm run lint         # revisar el codigo con ESLint
+npm run preview      # previsualizar el build de produccion localmente
+```
 
-## React Compiler
+## Variables de entorno
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Copiar `.env.example` como `.env.development` y ajustar:
 
-## Expanding the ESLint configuration
+```env
+VITE_APEX_MODE=false                            # false=ORDS, true=APEX On-Demand
+VITE_ORDS_BASE=http://localhost:8080/ords/ventas # URL de tu instancia ORDS
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Para produccion dentro de APEX, `.env.production` solo necesita:
+
+```env
+VITE_APEX_MODE=true
+```
+
+## Documentacion completa
+
+Ver [../docs/](../docs/) para guias detalladas de arquitectura, componentes, API y despliegue.

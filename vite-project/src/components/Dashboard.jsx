@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
-import { dashboardApi, USE_MOCKS } from '../api/client'
+import { dashboardApi } from '../api/dashboardApi'
+import { APEX_MODE } from '../api/utils'
 import { fmtCurrency, fmtInt } from '../utils/format'
 import KpiCard from './KpiCard'
 import ChartCard from './ChartCard'
@@ -63,8 +64,8 @@ export default function Dashboard() {
           <h1>Dashboard de Ventas</h1>
           <p className="dash-sub">
             APEX -&gt; React (Vite) -&gt; ORDS -&gt; PL/SQL -&gt; Oracle
-            <span className={`source-pill ${USE_MOCKS ? 'mock' : 'live'}`}>
-              {USE_MOCKS ? 'mock data' : 'ORDS live'}
+            <span className={`source-pill ${APEX_MODE ? 'apex' : 'live'}`}>
+              {APEX_MODE ? 'APEX live' : 'ORDS live'}
             </span>
           </p>
         </div>
