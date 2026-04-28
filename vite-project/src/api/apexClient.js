@@ -1,16 +1,59 @@
 // Cliente para llamar a APEX On-Demand Application Processes.
-// Usa apex.server.process() — API oficial de APEX que maneja sesion,
-// CSRF y routing automaticamente. Solo funciona dentro de una pagina APEX.
+// Usa POST a wwv_flow.ajax — compatible con APEX 20.1.
 
-const callProcess = (processName, extras = {}) =>
-  new Promise((resolve, reject) => {
-    window.apex.server.process(processName, extras, {
-      dataType: 'json',
-      success:  resolve,
-      error:    (jqXHR, status, error) =>
-        reject(new Error(`${processName}: ${status} – ${error}`)),
-    })
+const getApexEnv = () => {
+  const env = window.apex?.env || {}
+
+  // APEX 20.1 puede exponer APP_ID como numero o string.
+  // Fallback a los campos ocultos que APEX siempre inyecta en el DOM.
+  const appId = String(env.APP_ID || '')
+             || document.querySelector('[name="p_flow_id"]')?.value
+             || document.querySelector('#pFlowId')?.value
+             || ''
+
+  const pageId = String(env.APP_PAGE_ID || '')
+              || document.querySelector('[name="p_flow_step_id"]')?.value
+              || document.querySelector('#pFlowStepId')?.value
+              || '0'
+
+  const session = String(env.APP_SESSION || '')
+               || document.querySelector('[name="p_instance"]')?.value
+               || document.querySelector('#pInstance')?.value
+               || ''
+
+  console.log('[apexEnv]', { appId, pageId, session, rawEnv: env })
+  return { appId, pageId, session }
+}
+
+const callProcess = async (processName, extras = {}) => {
+  const { appId, pageId, session } = getApexEnv()
+
+  const body = new URLSearchParams({
+    p_request:      `APPLICATION_PROCESS=${processName}`,
+    p_flow_id:      appId,
+    p_flow_step_id: pageId,
+    p_instance:     session,
   })
+
+  Object.entries(extras).forEach(([k, v]) => {
+    if (v !== undefined && v !== null) body.append(k, String(v))
+  })
+
+  const res = await fetch('/apex/wwv_flow.ajax', {
+    method:      'POST',
+    body,
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Accept':       'application/json',
+    },
+  })
+
+  if (!res.ok) throw new Error(`APEX process ${processName} HTTP ${res.status}`)
+  const text = await res.text()
+  console.log(`[apexClient] ${processName} raw:`, text)
+  return JSON.parse(text)
+}
 
 // ---- Dashboard (solo lectura) ----
 export const apexDashboardApi = {

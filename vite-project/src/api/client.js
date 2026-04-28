@@ -31,8 +31,11 @@ const toLower = (val) => {
 const unwrap = (payload) => {
   if (!payload) return null
   const p = toLower(payload)
-  if (Array.isArray(p.data)) return p.data
-  if (p.items) return p.items
+  console.log('[api] raw payload:', p)   // DEBUG — quitar despues de verificar
+  if (Array.isArray(p))        return p
+  if (Array.isArray(p.data))   return p.data
+  if (Array.isArray(p.items))  return p.items
+  if (Array.isArray(p.rows))   return p.rows
   return p
 }
 
