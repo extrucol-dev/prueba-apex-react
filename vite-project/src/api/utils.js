@@ -1,5 +1,3 @@
-export const APEX_MODE = String(import.meta.env.VITE_APEX_MODE) === 'true'
-
 export const toLower = (val) => {
   if (Array.isArray(val)) return val.map(toLower)
   if (val !== null && typeof val === 'object') {
