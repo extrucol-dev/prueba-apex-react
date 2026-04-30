@@ -1,50 +1,27 @@
 import { useEffect, useState, useCallback } from 'react'
-import { dashboardApi } from '../api/dashboardApi'
-import { APEX_MODE } from '../api/utils'
-import { fmtCurrency, fmtInt } from '../utils/format'
-import KpiCard from './KpiCard'
-import ChartCard from './ChartCard'
-import VentasMensualesChart from './charts/VentasMensualesChart'
-import TopProductosChart from './charts/TopProductosChart'
-import CategoriasDonut from './charts/CategoriasDonut'
-import RegionBarChart from './charts/RegionBarChart'
-import UltimasVentasTable from './UltimasVentasTable'
+import { USE_MOCKS } from '@/api/apexClient'
+import { dashboardApi } from '@/features/dashboard/api'
+import { fmtCompact, fmtInt } from '@/utils/format'
+import { Bar } from 'react-chartjs-2'
+import { Chart, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from 'chart.js'
 
-const initial = {
-  kpis: null,
-  mensual: [],
-  productos: [],
-  categorias: [],
-  regiones: [],
-  ventas: [],
-}
+Chart.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend)
 
 export default function Dashboard() {
-  const [data, setData]       = useState(initial)
+  const [kpis, setKpis]       = useState(null)
+  const [funnel, setFunnel]   = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState(null)
-  const [updatedAt, setUpd]   = useState(null)
 
   const load = useCallback(async () => {
     setLoading(true); setError(null)
     try {
-      const [kpisR, mensualR, productosR, categoriasR, regionesR, ventasR] = await Promise.all([
-        dashboardApi.kpis(),
-        dashboardApi.ventasMensuales(),
-        dashboardApi.topProductos(5),
-        dashboardApi.ventasCategoria(),
-        dashboardApi.ventasRegion(),
-        dashboardApi.ultimasVentas(10),
+      const [kpisR, funnelR] = await Promise.all([
+        dashboardApi.ejecutivoKpis(1),
+        dashboardApi.directorFunnel(),
       ])
-      setData({
-        kpis:       Array.isArray(kpisR) ? kpisR[0] : kpisR,
-        mensual:    mensualR    || [],
-        productos:  productosR  || [],
-        categorias: categoriasR || [],
-        regiones:   regionesR   || [],
-        ventas:     ventasR     || [],
-      })
-      setUpd(new Date())
+      setKpis(kpisR)
+      setFunnel(funnelR)
     } catch (e) {
       console.error(e)
       setError('No se pudo cargar el dashboard')
@@ -55,141 +32,74 @@ export default function Dashboard() {
 
   useEffect(() => { load() }, [load])
 
-  const k = data.kpis || {}
+  const funnelData = {
+    labels:   funnel.map(f => f.estado),
+    datasets: [{
+      label:           'Pipeline ($)',
+      data:            funnel.map(f => f.valor),
+      backgroundColor: ['#3b82f6', '#f59e0b', '#8b5cf6', '#10b981'],
+      borderRadius:    4,
+    }],
+  }
 
   return (
-    <div className="dash">
-      <header className="dash-header">
+    <div className="p-8 max-w-6xl mx-auto">
+      {/* Encabezado */}
+      <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1>Dashboard de Ventas</h1>
-          <p className="dash-sub">
-            APEX -&gt; React (Vite) -&gt; ORDS -&gt; PL/SQL -&gt; Oracle
-            <span className={`source-pill ${APEX_MODE ? 'apex' : 'live'}`}>
-              {APEX_MODE ? 'APEX live' : 'ORDS live'}
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard CRM</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Modo: <span className={`font-medium ${USE_MOCKS ? 'text-amber-600' : 'text-green-600'}`}>
+              {USE_MOCKS ? 'Mock (desarrollo)' : 'APEX live'}
             </span>
           </p>
         </div>
-        <div className="dash-actions">
-          {updatedAt && (
-            <span className="muted">
-              Actualizado {updatedAt.toLocaleTimeString('es-MX')}
-            </span>
-          )}
-          <button type="button" className="btn" onClick={load} disabled={loading}>
-            {loading ? 'Cargando...' : 'Refrescar'}
-          </button>
+        <button
+          type="button"
+          onClick={load}
+          disabled={loading}
+          className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-blue-800 disabled:opacity-50 transition-colors"
+        >
+          {loading ? 'Cargando...' : 'Refrescar'}
+        </button>
+      </div>
+
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">{error}</div>
+      )}
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <KpiCard label="Leads activos"      value={fmtInt(kpis?.leads_activos)}   loading={loading} color="bg-blue-50 border-blue-200 text-blue-700" />
+        <KpiCard label="Opp. activas"       value={fmtInt(kpis?.opp_activas)}     loading={loading} color="bg-purple-50 border-purple-200 text-purple-700" />
+        <KpiCard label="Pipeline"           value={fmtCompact(kpis?.pipeline_valor)} loading={loading} color="bg-green-50 border-green-200 text-green-700" />
+        <KpiCard label="Actividades hoy"    value={fmtInt(kpis?.actividades_hoy)} loading={loading} color="bg-amber-50 border-amber-200 text-amber-700" />
+      </div>
+
+      {/* Funnel Chart */}
+      <div className="bg-white rounded-lg border border-gray-200 shadow-card p-6">
+        <h2 className="text-base font-semibold text-gray-800 mb-4">Pipeline por etapa</h2>
+        <div className="relative h-64">
+          {loading
+            ? <div className="animate-pulse bg-gray-100 rounded h-full" />
+            : funnel.length > 0
+              ? <Bar data={funnelData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }} />
+              : <p className="text-center text-gray-400 pt-20">Sin datos</p>
+          }
         </div>
-      </header>
+      </div>
+    </div>
+  )
+}
 
-      {error && <div className="alert">{error}</div>}
-
-      {/* ----- KPIs ----- */}
-      <section className="kpi-grid">
-        <KpiCard
-          title="Ingresos totales"
-          value={fmtCurrency(k.ingresos_total)}
-          hint="Solo ventas pagadas"
-          icon="$"
-          accent="indigo"
-          loading={loading}
-        />
-        <KpiCard
-          title="Ingresos del mes"
-          value={fmtCurrency(k.ingresos_mes)}
-          hint="Mes en curso"
-          icon="^"
-          accent="cyan"
-          loading={loading}
-        />
-        <KpiCard
-          title="Ventas totales"
-          value={fmtInt(k.num_ventas)}
-          hint={`Hoy: ${fmtInt(k.ventas_hoy)}`}
-          icon="#"
-          accent="emerald"
-          loading={loading}
-        />
-        <KpiCard
-          title="Ticket promedio"
-          value={fmtCurrency(k.ticket_promedio)}
-          hint={`${fmtInt(k.ventas_pendientes)} pendientes`}
-          icon="~"
-          accent="amber"
-          loading={loading}
-        />
-        <KpiCard
-          title="Clientes"
-          value={fmtInt(k.num_clientes)}
-          hint="Catalogo activo"
-          icon="@"
-          accent="violet"
-          loading={loading}
-        />
-        <KpiCard
-          title="Productos"
-          value={fmtInt(k.num_productos)}
-          hint="Activos"
-          icon="*"
-          accent="rose"
-          loading={loading}
-        />
-      </section>
-
-      {/* ----- CHARTS ROW 1 ----- */}
-      <section className="grid-2">
-        <ChartCard
-          title="Ingresos mensuales"
-          subtitle="Ultimos 12 meses (ventas pagadas)"
-          height={320}
-          loading={loading}
-        >
-          <VentasMensualesChart data={data.mensual} />
-        </ChartCard>
-
-        <ChartCard
-          title="Por categoria"
-          subtitle="Participacion de ingresos"
-          height={320}
-          loading={loading}
-        >
-          <CategoriasDonut data={data.categorias} />
-        </ChartCard>
-      </section>
-
-      {/* ----- CHARTS ROW 2 ----- */}
-      <section className="grid-2">
-        <ChartCard
-          title="Top 5 productos"
-          subtitle="Por ingresos"
-          height={300}
-          loading={loading}
-        >
-          <TopProductosChart data={data.productos} />
-        </ChartCard>
-
-        <ChartCard
-          title="Ventas por region"
-          subtitle="Aportacion por equipo comercial"
-          height={300}
-          loading={loading}
-        >
-          <RegionBarChart data={data.regiones} />
-        </ChartCard>
-      </section>
-
-      {/* ----- TABLA ----- */}
-      <ChartCard
-        title="Ultimas ventas"
-        subtitle="10 movimientos mas recientes"
-        height="auto"
-        loading={false}
-      >
-        <UltimasVentasTable data={data.ventas} loading={loading} />
-      </ChartCard>
-
-      <footer className="dash-footer">
-        <span>Demo APEX + React + ORDS</span>
-      </footer>
+function KpiCard({ label, value, loading, color }) {
+  return (
+    <div className={`border rounded-lg p-4 ${color}`}>
+      <p className="text-xs font-medium uppercase tracking-wide opacity-75">{label}</p>
+      {loading
+        ? <div className="mt-2 h-7 bg-current opacity-20 rounded animate-pulse" />
+        : <p className="mt-1 text-2xl font-bold">{value ?? '—'}</p>
+      }
     </div>
   )
 }

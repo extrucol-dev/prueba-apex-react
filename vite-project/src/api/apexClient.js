@@ -1,30 +1,34 @@
-// Cliente para llamar a APEX On-Demand Application Processes.
-// Usa POST a wwv_flow.ajax — compatible con APEX 20.1.
+// Capa de comunicación con Oracle APEX On-Demand Application Processes.
+// Usa POST a /apex/wwv_flow.ajax — compatible con APEX 20.1+.
+// En desarrollo (VITE_USE_MOCKS=true) cada api.js usa mocks locales
+// y esta función nunca se invoca.
+
+export const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true'
 
 const getApexEnv = () => {
   const env = window.apex?.env || {}
 
-  // APEX 20.1 puede exponer APP_ID como numero o string.
-  // Fallback a los campos ocultos que APEX siempre inyecta en el DOM.
+  // APEX 20.1 puede exponer APP_ID como número o string.
+  // Fallback a los campos ocultos que APEX inyecta en el DOM.
   const appId = String(env.APP_ID || '')
-             || document.querySelector('[name="p_flow_id"]')?.value
-             || document.querySelector('#pFlowId')?.value
-             || ''
+    || document.querySelector('[name="p_flow_id"]')?.value
+    || document.querySelector('#pFlowId')?.value
+    || ''
 
   const pageId = String(env.APP_PAGE_ID || '')
-              || document.querySelector('[name="p_flow_step_id"]')?.value
-              || document.querySelector('#pFlowStepId')?.value
-              || '0'
+    || document.querySelector('[name="p_flow_step_id"]')?.value
+    || document.querySelector('#pFlowStepId')?.value
+    || '0'
 
   const session = String(env.APP_SESSION || '')
-               || document.querySelector('[name="p_instance"]')?.value
-               || document.querySelector('#pInstance')?.value
-               || ''
+    || document.querySelector('[name="p_instance"]')?.value
+    || document.querySelector('#pInstance')?.value
+    || ''
 
   return { appId, pageId, session }
 }
 
-const callProcess = async (processName, extras = {}) => {
+export const callProcess = async (processName, extras = {}) => {
   const { appId, pageId, session } = getApexEnv()
 
   const body = new URLSearchParams({
@@ -48,36 +52,25 @@ const callProcess = async (processName, extras = {}) => {
     },
   })
 
-  if (!res.ok) throw new Error(`APEX process ${processName} HTTP ${res.status}`)
+  if (!res.ok) throw new Error(`APEX [${processName}] HTTP ${res.status}`)
   const text = await res.text()
   return JSON.parse(text)
 }
 
-// ---- Dashboard (solo lectura) ----
-export const apexDashboardApi = {
-  kpis:            ()           => callProcess('DASH_KPIS'),
-  ventasMensuales: ()           => callProcess('DASH_VENTAS_MENSUALES'),
-  topProductos:    (limit = 5)  => callProcess('DASH_TOP_PRODUCTOS',  { x01: limit }),
-  ventasCategoria: ()           => callProcess('DASH_VENTAS_CATEGORIA'),
-  ventasRegion:    ()           => callProcess('DASH_VENTAS_REGION'),
-  ultimasVentas:   (limit = 10) => callProcess('DASH_ULTIMAS_VENTAS', { x01: limit }),
-}
-
-// ---- Clientes (CRUD completo) ----
-export const apexClientesApi = {
-  list:   ()     => callProcess('CLIENTES_LIST'),
-  create: (data) => callProcess('CLIENTES_CREATE', {
-    x01: data.nombre,
-    x02: data.email,
-    x03: data.ciudad,
-    x04: data.pais,
-  }),
-  update: (data) => callProcess('CLIENTES_UPDATE', {
-    x01: data.id,
-    x02: data.nombre,
-    x03: data.email,
-    x04: data.ciudad,
-    x05: data.pais,
-  }),
-  delete: (id) => callProcess('CLIENTES_DELETE', { x01: id }),
+// Devuelve usuario y rol desde window.apex.env.
+// En modo mock retorna un ejecutivo de prueba.
+export const getSessionInfo = () => {
+  if (USE_MOCKS) {
+    return { appUser: 'demo@extrucol.com', rol: 'EJECUTIVO', idUsuario: 1 }
+  }
+  const env = window.apex?.env ?? {}
+  const roles = String(env.APP_USER_ROLES ?? '').toUpperCase()
+  return {
+    appUser:   env.APP_USER ?? '',
+    rol:       roles.includes('DIRECTOR') ? 'DIRECTOR'
+             : roles.includes('ADMIN')    ? 'ADMIN'
+             : roles.includes('COORD')    ? 'COORDINADOR'
+             : 'EJECUTIVO',
+    idUsuario: Number(env.APP_ID ?? 0),
+  }
 }
