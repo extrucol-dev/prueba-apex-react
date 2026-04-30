@@ -50,10 +50,10 @@ const MOCKS = {
   ],
   catalogos: {
     estados: [
-      { id_estado_oportunidad: 1, nombre: "Prospecto", tipo: "ACTIVO" },
-      { id_estado_oportunidad: 2, nombre: "Calificación", tipo: "ACTIVO" },
-      { id_estado_oportunidad: 3, nombre: "Propuesta", tipo: "ACTIVO" },
-      { id_estado_oportunidad: 4, nombre: "Negociación", tipo: "ACTIVO" },
+      { id_estado_oportunidad: 1, nombre: "Prospecto", tipo: "ABIERTO" },
+      { id_estado_oportunidad: 2, nombre: "Calificación", tipo: "ABIERTO" },
+      { id_estado_oportunidad: 3, nombre: "Propuesta", tipo: "ABIERTO" },
+      { id_estado_oportunidad: 4, nombre: "Negociación", tipo: "ABIERTO" },
       { id_estado_oportunidad: 5, nombre: "Ganada", tipo: "CERRADO_GANADO" },
       { id_estado_oportunidad: 6, nombre: "Perdida", tipo: "CERRADO_PERDIDO" },
     ],
@@ -102,14 +102,15 @@ export const oportunidadesApi = {
       ? Promise.resolve({ id_oportunidad: Date.now(), success: "true" })
       : callProcess("OPP_CREATE", {
           x01: data.titulo,
-          x02: data.id_tipo_oportunidad,
-          x03: data.id_estado_oportunidad ?? 1,
-          x04: data.valor_estimado,
-          x05: data.probabilidad_cierre ?? 50,
-          x06: data.id_sector,
-          x07: data.id_empresa,
-          x08: data.fecha_cierre_estimada,
-          x09: data.id_usuario,
+          x02: data.descripcion,
+          x03: data.id_tipo_oportunidad,
+          x04: data.id_estado_oportunidad ?? 1,
+          x05: data.valor_estimado,
+          x06: data.probabilidad_cierre ?? 50,
+          x07: data.id_sector,
+          x08: data.id_empresa,
+          x09: data.fecha_cierre_estimada,
+          x10: data.id_usuario,
         }).then(unwrapOne),
 
   actualizar: (id, data) =>
